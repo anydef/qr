@@ -1,15 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"io/ioutil"
+	"errors"
 )
 
+const output_file_permissions = 0644
+
 func main() {
-	if len(os.Args) > 1 {
-		input := os.Args[1]
-		fmt.Printf("QR generated: %s\n", input)
-	} else {
-		fmt.Println("Missing input paramter")
+	if len(os.Args) < 3 {
+		panic(errors.New("Missing input parameter"))
+	}
+	input := os.Args[1]
+	path := os.Args[2]
+
+	bytes := []byte(input)
+	err := ioutil.WriteFile(path, bytes, output_file_permissions)
+
+	if err != nil {
+		panic(err)
 	}
 }
