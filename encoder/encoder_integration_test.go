@@ -2,7 +2,6 @@ package encoder
 
 import (
 	"github.com/onsi/gomega/gexec"
-	//"testing"
 	"os/exec"
 	"testing"
 	"io/ioutil"
