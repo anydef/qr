@@ -19,7 +19,8 @@ const (
 type CorrectionLevel int
 
 const (
-	Low     CorrectionLevel = iota
+	_       CorrectionLevel = iota
+	Low
 	Medium
 	Quality
 	High
@@ -27,11 +28,11 @@ const (
 
 func Detect_Mode(input string) (MODE, error) {
 	if len(strings.TrimSpace(input)) == 0 {
-		return None, errors.New("Cannot determine encoding mode from input string")
+		return None, errors.New("Cannot determine encoding parse_mode from input string")
 	}
 
 	if _, err := strconv.Atoi(input); err != nil {
-		return None, errors.New("Cannot determine encoding mode from input string")
+		return None, errors.New("Cannot determine encoding parse_mode from input string")
 	}
 	return Numeric, nil
 }
@@ -47,21 +48,21 @@ const (
 	KanjiMode
 )
 
-func mode(record []string, index CsvIndex) MODE {
+func parse_mode(record []string, index CsvIndex) int {
 	val, err := strconv.Atoi(record[index])
 	if err != nil {
 		panic(err)
 	}
-	return MODE(val)
+	return val
 }
 
 type VersionCapacities struct {
 	Version              int
 	ErrorCorrectionLevel rune
-	NumericMode          MODE
-	AlphanumericMode     MODE
-	ByteMode             MODE
-	KanjiMode            MODE
+	NumericMode          int
+	AlphanumericMode     int
+	ByteMode             int
+	KanjiMode            int
 }
 
 func (cc VersionCapacities) Size() int {
@@ -75,18 +76,28 @@ func parseVersionCapacity(record []string) VersionCapacities {
 	return VersionCapacities{
 		Version:              version,
 		ErrorCorrectionLevel: errLevel,
-		NumericMode:          mode(record, NumericMode),
-		AlphanumericMode:     mode(record, AlphanumericMode),
-		ByteMode:             mode(record, ByteMode),
-		KanjiMode:            mode(record, KanjiMode),
+		NumericMode:          parse_mode(record, NumericMode),
+		AlphanumericMode:     parse_mode(record, AlphanumericMode),
+		ByteMode:             parse_mode(record, ByteMode),
+		KanjiMode:            parse_mode(record, KanjiMode),
 	}
 }
 
 func (c *Context) DetermineVersion(input string, level CorrectionLevel) (int, error) {
-	if len(input) > 1852 {
+
+	if len(input) == 0 {
+		return 1, nil
+	}
+	max_version := c.Capacities[len(c.Capacities)-1]
+
+	if level == Low && len(input) > max_version.NumericMode ||
+		level == Medium && len(input) > 3391 ||
+		level == Quality && len(input) > 2420 ||
+		level == High && len(input) > 1852 {
 		return 0, errors.New(fmt.Sprintf("Input len( %d ) too long.", len(input)))
 	}
-	return 1, nil
+
+	return 40, nil
 }
 
 type Context struct {
