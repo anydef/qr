@@ -3,9 +3,6 @@ package encoder_test
 import (
 	"testing"
 	"github.com/anydef/qr/encoder"
-	"os"
-	"encoding/csv"
-	"strconv"
 )
 
 func Test_DetectMode_Numeric(t *testing.T) {
@@ -29,68 +26,52 @@ func Test_DetectError_Alphanumeric(t *testing.T) {
 	}
 }
 
-type CsvIndex int
-
-const (
-	Version              CsvIndex = iota
-	ErrorCorrectionLevel
-	NumericMode
-	AlphanumericMode
-	ByteMode
-	KanjiMode
-)
-
-func parse_mode(record []string, index CsvIndex) encoder.MODE {
-	val, err := strconv.Atoi(record[index])
-	if err != nil {
-		panic(err)
-	}
-	return encoder.MODE(val)
-}
-
-type CharacterCapacities struct {
-	Version              int
-	ErrorCorrectionLevel rune
-	NumericMode          encoder.MODE
-	AlphanumericMode     encoder.MODE
-	ByteMode             encoder.MODE
-	KanjiMode            encoder.MODE
+type pair struct {
+	l, r interface{}
 }
 
 func Test_QR_Version(t *testing.T) {
-	file, err := os.Open("character_capacities.csv")
-	if err != nil {
-		t.Fatalf("No character_capacities.csv found. %s", err)
-	}
+	context := encoder.GetContext()
 
-	defer file.Close()
-
-	r := csv.NewReader(file)
-	lines, err := r.ReadAll()
-	if err != nil {
-		t.Fatalf("error reading all lines: %v", err)
-	}
-	for i, record := range lines {
-		if i == 0 {
-			// skip header line
-			continue
+	for _, version_capacity := range context.Capacities {
+		size := 17 + (version_capacity.Version * 4)
+		if version_capacity.Size() != size {
+			t.Fatalf("Size for version %d should be %d", version_capacity.Version, size)
 		}
-		version, _ := strconv.Atoi(record[Version])
-		errLevel := []rune(record[ErrorCorrectionLevel])[0]
-		numericMode := parse_mode(record, NumericMode)
-		alphanumericMode := parse_mode(record, AlphanumericMode)
-		byteMode := parse_mode(record, ByteMode)
-		kanjiMode := parse_mode(record, KanjiMode)
-		cc := CharacterCapacities{
-			Version:              version,
-			ErrorCorrectionLevel: errLevel,
-			NumericMode:          numericMode,
-			AlphanumericMode:     alphanumericMode,
-			ByteMode:             byteMode,
-			KanjiMode:            kanjiMode,
-		}
+	}
+}
 
-		t.Logf("Record %s", cc)
+func Test_DetermineVersion_Empty_All_CorrectionLevels(t *testing.T) {
+	context := encoder.GetContext()
+	levels := []encoder.CorrectionLevel{encoder.Low, encoder.Medium, encoder.Quality, encoder.High}
+	for _, level := range levels {
+		i, err := context.DetermineVersion("", level)
+		if err != nil {
+			t.Fatalf("Should be verison 1 for empty string, got: %s", err)
+		}
+		if i != 1 {
+			t.Fatalf("Version for empty string should be 1")
+		}
+	}
+}
+
+
+
+func Test_DetermineVersion_Numeric_OutOfBounds_CorrectionLevel_Low(t *testing.T) {
+	context := encoder.GetContext()
+
+	size := 1853
+
+	chars := make([]rune, size)
+
+	for i := range chars {
+		chars[i] = '1'
+	}
+	level := encoder.Low
+	_, err := context.DetermineVersion(string(chars), level)
+	t.Logf(err.Error())
+	if err == nil {
+		t.Fatalf("%d should not fit into numeric capacity for %s", size, level)
 	}
 
 }
