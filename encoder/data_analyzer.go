@@ -9,11 +9,14 @@ import (
 	"fmt"
 )
 
-type MODE int
+type InputType int
 
 const (
-	None    MODE = iota
+	None         InputType = iota
 	Numeric
+	Alphanumeric
+	Byte
+	Kanji
 )
 
 type CorrectionLevel int
@@ -26,7 +29,14 @@ const (
 	High
 )
 
-func Detect_Mode(input string) (MODE, error) {
+var CorrectionLevelMap map[rune]CorrectionLevel = map[rune]CorrectionLevel{
+	'L': Low,
+	'M': Medium,
+	'Q': Quality,
+	'H': High,
+}
+
+func Determine_InputType(input string) (InputType, error) {
 	if len(strings.TrimSpace(input)) == 0 {
 		return None, errors.New("Cannot determine encoding parse_mode from input string")
 	}
@@ -42,10 +52,10 @@ type CsvIndex int
 const (
 	Version              CsvIndex = iota
 	ErrorCorrectionLevel
-	NumericMode
-	AlphanumericMode
-	ByteMode
-	KanjiMode
+	NumericField
+	AlphanumericField
+	ByteField
+	KanjiField
 )
 
 func parse_mode(record []string, index CsvIndex) int {
@@ -76,10 +86,10 @@ func parseVersionCapacity(record []string) VersionCapacities {
 	return VersionCapacities{
 		Version:              version,
 		ErrorCorrectionLevel: errLevel,
-		NumericMode:          parse_mode(record, NumericMode),
-		AlphanumericMode:     parse_mode(record, AlphanumericMode),
-		ByteMode:             parse_mode(record, ByteMode),
-		KanjiMode:            parse_mode(record, KanjiMode),
+		NumericMode:          parse_mode(record, NumericField),
+		AlphanumericMode:     parse_mode(record, AlphanumericField),
+		ByteMode:             parse_mode(record, ByteField),
+		KanjiMode:            parse_mode(record, KanjiField),
 	}
 }
 
@@ -88,6 +98,7 @@ func (c *Context) DetermineVersion(input string, level CorrectionLevel) (int, er
 	if len(input) == 0 {
 		return 1, nil
 	}
+
 	max_version := c.Capacities[len(c.Capacities)-1]
 
 	if level == Low && len(input) > max_version.NumericMode ||
@@ -100,15 +111,46 @@ func (c *Context) DetermineVersion(input string, level CorrectionLevel) (int, er
 	return 40, nil
 }
 
+type VersionCapacity struct {
+	version  int
+	capacity int
+}
+
 type Context struct {
-	Capacities []VersionCapacities
+	Capacities      []VersionCapacities
+	capacity_lookup map[InputType]map[CorrectionLevel][]VersionCapacity
+}
+
+func (c *Context) Smallest_Numeric_Version_L(input string) int {
+	input_type, err := Determine_InputType(input)
+	if err != nil {
+		panic(err)
+	}
+	return c.capacity_lookup[input_type][Low]
 }
 
 var _context *Context = nil
 
 func GetContext() *Context {
 	if _context == nil {
-		_context = &Context{Capacities: loadCapacitiesTable()}
+		table := loadCapacitiesTable()
+		type pair struct {
+			version  int
+			capacity int
+		}
+		////var types map[string]int
+		////types = make(map[string]int)
+		//low := []pair{}
+		//medium := []pair{}
+		//quality := []pair{}
+		//high := []pair{}
+		capacity_lookup := make(map[InputType]map[CorrectionLevel][]VersionCapacity)
+		for _, capacity := range table {
+			versionCapacities := capacity_lookup[Numeric][CorrectionLevelMap[capacity.ErrorCorrectionLevel]]
+			versionCapacities = append(versionCapacities, VersionCapacity{capacity.Version, capacity.NumericMode})
+		}
+
+		_context = &Context{Capacities: table, capacity_lookup: capacity_lookup}
 	}
 	return _context
 }

@@ -3,24 +3,27 @@ package encoder_test
 import (
 	"testing"
 	"github.com/anydef/qr/encoder"
+	//"sort"
+	//"fmt"
 )
 
 func Test_DetectMode_Numeric(t *testing.T) {
-	mode, _ := encoder.Detect_Mode("1234")
+	mode, _ := encoder.Determine_InputType("1234")
 	if mode != encoder.Numeric {
 		t.Errorf("Expected nummeric mode: %d", encoder.Numeric)
 	}
 }
 
 func Test_DetectError_EmptyString(t *testing.T) {
-	mode, err := encoder.Detect_Mode("")
+	mode, err := encoder.Determine_InputType("")
 	if err == nil {
 		t.Errorf("Expected to return error, but got %d", mode)
 	}
 }
 
 func _Test_DetectError_Alphanumeric(t *testing.T) {
-	mode, err := encoder.Detect_Mode("12345ABDCEF")
+
+	mode, err := encoder.Determine_InputType("12345ABDCEF")
 	if err == nil {
 		t.Errorf("Expected to return error, but got %d", mode)
 	}
@@ -99,12 +102,9 @@ func Test_DetermineVersion_Numeric_MaxValue(t *testing.T) {
 		level := limit.l.(encoder.CorrectionLevel)
 		limit_size := limit.r.(int)
 
-		chars := make([]rune, limit_size)
+		str := make_string(limit_size, '1')
 
-		for i := range chars {
-			chars[i] = '1'
-		}
-		version, err := context.DetermineVersion(string(chars), level)
+		version, err := context.DetermineVersion(str, level)
 
 		if err != nil {
 			t.Fatalf("%d should fit into numeric capacity for correction level %d", limit_size, level)
@@ -116,4 +116,41 @@ func Test_DetermineVersion_Numeric_MaxValue(t *testing.T) {
 
 	}
 
+}
+func make_string(len int, char rune) string {
+	chars := make([]rune, len)
+	for i := range chars {
+		chars[i] = char
+	}
+	return string(chars)
+}
+
+func Test_Find_SmallestVersion(t *testing.T) {
+	context := encoder.GetContext()
+	if v := context.Smallest_Numeric_Version_L(make_string(10, '1')); v != 1 {
+		t.Fatalf("Wrong version returned. [ %d ]", v)
+	}
+
+	if v := context.Smallest_Numeric_Version_L(make_string(42, '1')); v != 2 {
+		t.Fatalf("Wrong version returned. [ %d ]", v)
+	}
+
+	//type pair struct {
+	//	version  int
+	//	capacity int
+	//}
+	//
+	//a := []pair{{1, 100}, {3, 300}, {6, 600}, {10, 1000}}
+	//x := 101
+	//
+	//i := sort.Search(len(a), func(i int) bool {
+	//	return a[i].capacity >= x
+	//})
+	//
+	//if i < len(a) && a[i].capacity >= x {
+	//	fmt.Printf("found%d at index %d in %v\n", x, i, a)
+	//	fmt.Printf("%v", a[i])
+	//} else {
+	//	fmt.Printf("%d not found in %v\n", x, a)
+	//}
 }
