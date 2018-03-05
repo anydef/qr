@@ -1,24 +1,35 @@
 package main
 
 import (
-	"os"
 	"io/ioutil"
-	"errors"
+	"flag"
+	"fmt"
 )
 
 const output_file_permissions = 0644
 
-func main() {
-	if len(os.Args) < 3 {
-		panic(errors.New("Missing input parameter"))
-	}
-	input := os.Args[1]
-	path := os.Args[2]
+var correction_level string
+var input string
+var output string
+var mask_patter int
 
+func parse_varargs() {
+	flag.StringVar(&correction_level, "correction-level", "low", "error correction level")
+	flag.IntVar(&mask_patter, "mask-pattern", 0, "mask pattern. TBD")
+	flag.StringVar(&input, "input", "", "Input string")
+	flag.StringVar(&output, "output", "", "Output file path")
+
+	flag.Parse()
+}
+
+func main() {
+	parse_varargs()
 	bytes := []byte(input)
-	err := ioutil.WriteFile(path, bytes, output_file_permissions)
+	err := ioutil.WriteFile(output, bytes, output_file_permissions)
 
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("Exit 0")
 }

@@ -1,4 +1,4 @@
-package encoder
+package intergation_test
 
 import (
 	"github.com/onsi/gomega/gexec"
@@ -10,25 +10,27 @@ import (
 
 const test_image_path = "./qr_111111.png"
 const expected_image_path = "/tmp/integration_test.png"
-const correction_lvl = "L"
-const mask_pattern = "0"
-const input_text = "111111"
+const expected_image_path_option = "-output=" + expected_image_path
+const correction_lvl = "-correction-level=L"
+const mask_pattern = "-mask-pattern=0"
+const input_text = "-input=111111"
 
 var pathToBinary string
 
-func _Test_GeneratedQR(t *testing.T) {
+func Test_GeneratedQR_Numeric(t *testing.T) {
 	//Compile binary
 	var err error
 	pathToBinary, err = gexec.Build("github.com/anydef/qr")
+	defer gexec.CleanupBuildArtifacts()
 	if err != nil {
 		t.Fatalf("Not able to compile, reason: %s", err)
 	}
 
 	//Run compiled binary with parameters
-	command := exec.Command(pathToBinary, input_text, expected_image_path, correction_lvl, mask_pattern)
+	command := exec.Command(pathToBinary, input_text, expected_image_path_option, correction_lvl, mask_pattern)
 	err = command.Run()
 	if err != nil {
-		t.Fatalf("Command exited with error")
+		t.Fatalf("Command exited with error, %s", err)
 	}
 
 	test_image, err := ioutil.ReadFile(test_image_path)
@@ -47,7 +49,4 @@ func _Test_GeneratedQR(t *testing.T) {
 			"\nExpected\t%b",
 			test_image, expected_image)
 	}
-
-	//Clean up build
-	gexec.CleanupBuildArtifacts()
 }
