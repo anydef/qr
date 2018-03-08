@@ -11,11 +11,11 @@ const output_file_permissions = 0644
 var correction_level string
 var input string
 var output string
-var mask_patter int
+var mask_pattern int
 
 func parse_varargs() {
 	flag.StringVar(&correction_level, "correction-level", "low", "error correction level")
-	flag.IntVar(&mask_patter, "mask-pattern", 0, "mask pattern. TBD")
+	flag.IntVar(&mask_pattern, "mask-pattern", 0, "mask pattern. TBD")
 	flag.StringVar(&input, "input", "", "Input string")
 	flag.StringVar(&output, "output", "", "Output file path")
 
@@ -31,5 +31,9 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Exit 0")
+	fmt.Printf("Input string %s\n", input)
+	fmt.Printf("Correction level %s\n", correction_level)
+	fmt.Printf("Mask pattern %d\n", mask_pattern)
+	fmt.Printf("Output path %s\n", output)
+
 }
