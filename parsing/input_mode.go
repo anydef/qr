@@ -1,8 +1,8 @@
 package parsing
 
-type InputType int
+type InputMode int
 
-var constLookup = map[InputType]string{
+var inputModeToString = map[InputMode]string{
 	Numeric:      `Numeric`,
 	Alphanumeric: `Alphanumeric`,
 	Byte:         `Byte`,
@@ -10,18 +10,18 @@ var constLookup = map[InputType]string{
 }
 
 const (
-	_            InputType = iota
+	_            InputMode = iota
 	Numeric
 	Alphanumeric
 	Byte
 	Kanji
 )
 
-func (i InputType) String() string {
-	return constLookup[i]
+func (i InputMode) String() string {
+	return inputModeToString[i]
 }
 
-func DetermineInputType(input string) InputType {
+func DetermineInputType(input string) InputMode {
 	r := Numeric
 	for _, c := range input {
 		if char_alphanumeric(c) && r <= Alphanumeric {
@@ -30,11 +30,14 @@ func DetermineInputType(input string) InputType {
 		if char_byte(c) && r <= Byte {
 			r = Byte
 		}
-		if c > 255 && r <= Kanji {
-			r = Kanji
+		if char_kanji(c) && r <= Kanji {
+			return Kanji
 		}
 	}
 	return r
+}
+func char_kanji(c rune) bool {
+	return c > 255
 }
 
 func char_byte(c rune) bool {
