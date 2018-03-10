@@ -48,11 +48,12 @@ type Version struct {
 
 func Get_Version(input string, level CorrectionLevel) Version {
 	fmt.Printf("Input [%s], correction level [%s]", input, level)
-	capacity, ordinal := find_version(DetermineInputType(input), level)
+
+	capacity, ordinal := find_version(DetermineInputType(input), level, len(input))
 	return Version{Capacity: capacity, Ordinal: ordinal}
 }
 
-func find_version(mode InputMode, level CorrectionLevel) (int, int) {
+func find_version(mode InputMode, level CorrectionLevel, input_len int) (int, int) {
 	const (
 		version          int = iota
 		error_correction
@@ -85,15 +86,25 @@ func find_version(mode InputMode, level CorrectionLevel) (int, int) {
 		version := to_int(record[version])
 		switch mode {
 		case Numeric:
-			return to_int(record[numeric]), version
+			if c := to_int(record[numeric]); input_len <= c {
+				return c, version
+			}
+			continue
 		case Alphanumeric:
-			return to_int(record[alphanumeric]), version
+			if c := to_int(record[alphanumeric]); input_len <= c {
+				return c, version
+			}
+			continue
 		case Byte:
-			return to_int(record[byte_mode]), version
+			if c := to_int(record[byte_mode]); input_len <= c {
+				return c, version
+			}
+			continue
 		case Kanji:
-			return to_int(record[kanji]), version
-		default:
-			panic(errors.New(fmt.Sprintf("Unrecognised mode %s", mode)))
+			if c := to_int(record[kanji]); input_len <= c {
+				return c, version
+			}
+			continue
 		}
 	}
 	panic(errors.New(fmt.Sprintf("Couldn't find encoding record for input mode [%s] and level [%s]", mode, level)))
